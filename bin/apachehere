@@ -1,0 +1,177 @@
+#!/bin/bash
+# apachehere
+#
+usage_exit() {
+    echo "Usage: $0 [-t document_root]  " 1>&2
+    echo "[-b bind_ip] : default 127.0.0.1 " 1>&2
+    echo "[-p port_num] : default 8080 " 1>&2
+    echo "[-m] : use mod_php" 1>&2
+    echo "[-c /path/to/php.ini]" 1>&2
+    echo "[-s /path/to/php/conf.d]" 1>&2
+    exit 
+}
+# ポート1024以下を指定する場合は本スクリプトをsudoで実行する
+# mod_phpを使う場合には、libphp7.soなどをphpenv/versions/x.x.x/libexec/の中に設置する
+
+### functions
+# borrow from https://github.com/rbenv/rbenv
+READLINK=$(type -p greadlink readlink | head -1)
+[ -n "$READLINK" ] || abort "cannot find readlink - are you missing GNU coreutils?"
+resolve_link() {
+    $READLINK "$1"
+}
+abs_dirname() {
+    local cwd="$PWD"
+    local path="$1"
+
+    while [ -n "$path" ]; do
+        cd "${path%/*}"
+        local name="${path##*/}"
+        path="$(resolve_link "$name" || true)"
+    done
+
+    pwd
+    cd "$cwd"
+}
+
+# borrow from http://unix.stackexchange.com/questions/101080/realpath-command-not-found
+realpath ()
+{
+    f=$@;
+    if [ -d "$f" ]; then
+        base="";
+        dir="$f";
+    else
+        base="/$(basename "$f")";
+        dir=$(dirname "$f");
+    fi;
+    dir=$(cd "$dir" && /bin/pwd);
+    echo "$dir$base"
+}
+
+### main
+# sudo時でも、Apacheでは元のUSERを使いたい
+if [ "${SUDO_USER}" == "" ]; then
+    ORIG_USER=${USER}
+else
+    ORIG_USER=${SUDO_USER}
+fi
+
+BASE_DIR="$(abs_dirname $(abs_dirname "$0"))"
+OLD_CWD=`pwd`
+DOC_ROOT=${OLD_CWD}
+LISTEN_PORT=8080
+BIND_IP="127.0.0.1"
+
+# El capitan default apache
+if [ "${APACHE_ORIG_SERVER_ROOT}" == "" ] ; then
+    APACHE_ORIG_SERVER_ROOT="/usr"
+    APACHE_ORIG_HTTPD=/usr/sbin/httpd
+fi
+
+# optionをパース
+while getopts :t:p:ms:c:b:h opts
+do
+    case $opts in
+        t) DOC_ROOT=$(realpath ${OPTARG})
+            ;;
+        p) LISTEN_PORT=$OPTARG
+            ;;
+        m) USE_MOD_PHP="yes"
+            ;;
+        c) APACHE_MY_PHP_INI_DIR=${OPTARG}
+            ;;
+        s) APACHE_MY_PHP_INI_SCAN_DIR=${OPTARG}
+            ;;
+        b) BIND_IP=${OPTARG}
+            ;;
+        h) usage_exit
+            ;;
+    esac
+done
+
+# phpenvのバージョンをとってくる（もっとイケてる方法ないのか…？）
+# phpenvがなければPHPは有効にならない 
+cd ${DOC_ROOT}
+PHPENV_VER=`phpenv local 2> /dev/null`
+if [ "${PHPENV_VER}" == "" ]; then
+    PHPENV_VER=`phpenv global 2> /dev/null`
+    if [ "${PHPENV_VER}" == "" ]; then
+        echo "no phpenv."
+    fi
+fi
+cd ${OLD_CWD}
+
+if [ "${PHPENV_VER}" != "" ]; then
+    PHP_BASE_DIR="/Users/${ORIG_USER}/.phpenv/versions/${PHPENV_VER}"
+
+    # mod_phpのso、あるいはphp-cgiのpathを獲得する
+    if [ "${USE_MOD_PHP}" == "yes" ]; then
+        USE_MOD_PHP_ARG="-DUSE_MOD_PHP"
+        if [ -r "${PHP_BASE_DIR}/libexec/libphp7.so" ]; then
+            APACHE_PHP_MODULE_PATH="${PHP_BASE_DIR}/libexec/libphp7.so"
+        elif [ -r "${PHP_BASE_DIR}/libexec/libphp5.so" ]; then
+            APACHE_PHP_MODULE_PATH="${PHP_BASE_DIR}/libexec/libphp5.so"
+        else
+            echo "not found /path/to/phpenv/versions/xxx/libexec/libphp(5|7).so";
+            abort;
+        fi
+    else
+        APACHE_PHP_CGI_CONTAIN_DIR_PATH="${PHP_BASE_DIR}/bin/"
+    fi
+
+    # 独自php.ini指定周り
+    if [ "${APACHE_MY_PHP_INI_DIR}" != "" ]; then
+        USE_APACHE_MY_PHP_INI_DIR="-DUSE_APACHE_MY_PHP_INI_DIR"
+    fi
+    if [ "${USE_MOD_PHP}" == "yes" ]; then
+        # mod_phpの場合、PHP_INI_SCAN_DIRをhttpd.confの中で指定する方法がわからぬ
+        export PHP_INI_SCAN_DIR=${APACHE_MY_PHP_INI_SCAN_DIR}
+    else
+        if [ "${APACHE_MY_PHP_INI_SCAN_DIR}" != "" ]; then
+            USE_APACHE_MY_PHP_INI_SCAN_DIR="-DUSE_APACHE_MY_PHP_INI_SCAN_DIR"
+        fi
+    fi
+    USE_PHP="-DUSE_PHP"
+fi
+
+if [ "${APACHE_HTTPD_CONF_FILE}" == "" ]; then
+    APACHE_HTTPD_CONF_FILE=${BASE_DIR}/conf/httpd.conf
+fi
+
+### pass env to httpd.conf
+export LISTEN_PORT
+export BIND_IP
+export DOC_ROOT
+export ORIG_USER
+export APACHE_ORIG_SERVER_ROOT
+export TMP_APACHE_SERVER_ROOT
+if [ "${PHPENV_VER}" != "" ]; then
+    export APACHE_PHP_MODULE_PATH
+    export APACHE_PHP_CGI_CONTAIN_DIR_PATH
+    export APACHE_MY_PHP_INI_DIR
+    export APACHE_MY_PHP_INI_SCAN_DIR
+fi
+
+echo "document root is :${DOC_ROOT}"
+echo "open : http://127.0.0.1:${LISTEN_PORT}/"
+
+### startup apache
+# ApacheのServerRoot/logsにpidなど色々置かれるので、テンポラリディレクトリを作成する。
+# 最後に削除する。
+TMP_APACHE_SERVER_ROOT=`mktemp -d /tmp/apacheheretmp.XXXXXXXX`
+`mkdir -p ${TMP_APACHE_SERVER_ROOT}/logs`
+
+# exec
+${APACHE_ORIG_HTTPD} \
+ -d ${TMP_APACHE_SERVER_ROOT} \
+ -f ${APACHE_HTTPD_CONF_FILE} \
+ -DFOREGROUND \
+ ${USE_PHP}
+ ${USE_MOD_PHP_ARG} \
+ ${USE_APACHE_MY_PHP_INI_SCAN_DIR} \
+ ${USE_APACHE_MY_PHP_INI_DIR} \
+
+### finish
+# remove tmp dir
+`rm -r ${TMP_APACHE_SERVER_ROOT}`
