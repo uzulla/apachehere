@@ -110,48 +110,52 @@ CustomLog /dev/stdout php_bs_style
 
 TypesConfig ${APACHE_ORIG_SERVER_ROOT}/conf/mime.types
 
+DirectoryIndex index.html
+
 ### Set up PHP Env.
-DirectoryIndex index.php index.html
+<IfDefine USE_PHP>
+    DirectoryIndex index.php index.html
+    # mod_phpの場合
+    <IfDefine USE_MOD_PHP>
+        LoadModule php7_module ${APACHE_PHP_MODULE_PATH}
 
-# mod_phpの場合
-<IfDefine USE_MOD_PHP>
-    LoadModule php7_module ${APACHE_PHP_MODULE_PATH}
+        <FilesMatch \.php$>
+            AddType text/html .php
+            SetHandler application/x-httpd-php
+        </FilesMatch>
 
-    <FilesMatch \.php$>
-        AddType text/html .php
-        SetHandler application/x-httpd-php
-    </FilesMatch>
-
-    # php.iniを指定する場合
-    <IFDefine USE_APACHE_MY_PHP_INI_DIR>
-        PHPIniDir "${APACHE_MY_PHP_INI_DIR}"
-    </IFDefine>
-    # PHP_INI_SCAN_DIRはstart.shの環境変数で設定
-</IfDefine>
-# apache mod_action+php-cgiの場合
-<IfDefine !USE_MOD_PHP>
-    # ScriptAliasを phpenv/versions/x.x.x/bin/ に直接張るのは悪い手法だが、
-    # （php-cgi以外もpathが通るので）ここではローカル開発環境向けなので、
-    # php-binをどこかにコピーして指定するのが正しい。
-    # php-cgiでmod_rewriteのQSAを使うと、mod_phpと違ってSCRIPT_NAMEにホスト名が入る事があるので注意
-    ScriptAlias /php-bin/ ${APACHE_PHP_CGI_CONTAIN_DIR_PATH}
-    <Directory  ${APACHE_PHP_CGI_CONTAIN_DIR_PATH}>
-        Options ExecCGI
-        Require all granted
-    </Directory>
-    Action php-script /php-bin/php-cgi
-    <FilesMatch \.php$>
-        AddHandler php-script .php
-    </FilesMatch>
-
-    # php.iniを指定する場合
-    <IFDefine USE_APACHE_MY_PHP_INI_DIR>
-        SetEnv PHPRC "${APACHE_MY_PHP_INI_DIR}/php.ini"
-    </IFDefine>
-    <IFDefine USE_APACHE_MY_PHP_INI_SCAN_DIR>
-        SetEnv PHP_INI_SCAN_DIR "${APACHE_MY_PHP_INI_SCAN_DIR}"
+        # php.iniを指定する場合
+        <IFDefine USE_APACHE_MY_PHP_INI_DIR>
+            PHPIniDir "${APACHE_MY_PHP_INI_DIR}"
+        </IFDefine>
+        # PHP_INI_SCAN_DIRはstart.shの環境変数で設定
     </IfDefine>
-</IFDefine>
+    # apache mod_action+php-cgiの場合
+    <IfDefine !USE_MOD_PHP>
+        # ScriptAliasを phpenv/versions/x.x.x/bin/ に直接張るのは悪い手法、
+        # （php-cgi以外もpathが通ってしまうので）
+        # php-binをどこかにコピーして指定するのが本来正しい。
+        # ここではローカル開発環境向けなので許す。
+        # php-cgiでmod_rewriteのQSAを使うと、mod_phpと違ってSCRIPT_NAMEにホスト名が入る事があるので注意
+        ScriptAlias /php-bin/ ${APACHE_PHP_CGI_CONTAIN_DIR_PATH}
+        <Directory  ${APACHE_PHP_CGI_CONTAIN_DIR_PATH}>
+            Options ExecCGI
+            Require all granted
+        </Directory>
+        Action php-script /php-bin/php-cgi
+        <FilesMatch \.php$>
+            AddHandler php-script .php
+        </FilesMatch>
+
+        # php.iniを指定する場合
+        <IFDefine USE_APACHE_MY_PHP_INI_DIR>
+            SetEnv PHPRC "${APACHE_MY_PHP_INI_DIR}/php.ini"
+        </IFDefine>
+        <IFDefine USE_APACHE_MY_PHP_INI_SCAN_DIR>
+            SetEnv PHP_INI_SCAN_DIR "${APACHE_MY_PHP_INI_SCAN_DIR}"
+        </IfDefine>
+    </IFDefine>
+</IfDefine>
 
 ### Setup DocumentRoot
 DocumentRoot ${DOC_ROOT} 
