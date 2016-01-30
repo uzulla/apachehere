@@ -4,9 +4,9 @@
 
 好きなディレクトリで`apachehere`とタイプすると、そこをDocumentRootとしてApacheが立ち上がります。PHPのbuiltin serverみたいで手軽です。
 
-OSX El capitanならcloneしてpathを通すだけでSystemのApacheとPHPで動かす事ができます。
+OSX El capitanならcloneしてpathを通すだけでSystemのApacheとPHPを利用した環境が立ち上がります。
 
-phpenvがインストール済みならそちらのphpをつかいます。phpenvのlocal指定も反映されます。mod_phpも用意すれば使えます（後述）。
+phpenvがインストール済みならば、そちらのphpをつかいます。phpenvのlocal指定も反映されます。mod_phpも使えます（後述）。
 
 
 ## DISCLAIMER
@@ -19,20 +19,21 @@ OSX El Capitanでのみテストしていますが、おそらく他でも多少
 
 ### El capitanの環境
 
-cloneしてpathを通すだけです。 phpenvなどがなければ、System ApacheとSystem PHPを利用します。
+cloneしてpathを通すだけです。 `phpenv`がなければ、System ApacheとSystem PHPを利用します。
 
 ```
-$ git clone this_repo
-# `bin/apachehere` にパスを通す
-
+$ git clone https://github.com/uzulla/apachehere.git
+# `apachehere/bin`にpathを通すか、pathの通った所にapachehereをsymlinkする
 ```
+
+System Apacheを使わない場合や、`httpd.conf`を修正したい場合は次を参照
 
 ### それ以外の環境、あるいは野良ビルドしたApacheを使う場合
 
 ```
-$ git clone this_repo
+$ git clone https://github.com/uzulla/apachehere.git
 
-# sampleを元にhttpd.confを適当につくってください
+# sampleを元にhttpd.confを適当に作成
 $ cp conf/httpd.conf.sample conf/httpd.conf
 $ vi conf/httpd.conf
 
@@ -40,14 +41,15 @@ $ vi conf/httpd.conf
 # `apachehere`コマンドの先頭あたりに以下を追記
 # APACHE_ORIG_SERVER_ROOT="/Users/uzulla/apache"
 # APACHE_ORIG_HTTPD="/Users/uzulla/apache/bin/httpd"
+# ※ あるいは、実行時に毎回環境変数を設定
 $ vi bin/apachehere
 
-# あとは `bin/apachehere` にパスを通して下さい。
+# `apachehere/bin`にpathを通すか、pathの通った所にapachehereをsymlinkする
 ```
 
 ### さらにあるいは、一部を環境変数で設定
 
-プロジェクト毎に`httpd.conf`の設定が異なる場合には環境変数でhttpd.confの位置を指定できます。
+プロジェクト毎に`httpd.conf`の設定が異なる場合には環境変数で`httpd.conf`の位置を指定できます。
 
 ```
 $ APACHE_HTTPD_CONF_FILE="/path/to/your_project/nice_httpd_conf.conf" \
@@ -59,7 +61,7 @@ APACHE_HTTPD_CONF_FILE="/path/to/your_project/nice_httpd_conf.conf" \
 ./apachehere
 ```
 
-上記は1行で実行させていますが、勿論それぞれexportしてもよいでしょう。
+上記は1行で実行していますが、事前にexportでもよい。
 
 ## 使い方
 
