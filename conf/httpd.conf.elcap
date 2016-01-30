@@ -141,7 +141,7 @@ DirectoryIndex index.html
     DirectoryIndex index.php index.html
     # mod_phpの場合
     <IfDefine USE_MOD_PHP>
-        LoadModule php7_module ${APACHE_PHP_MODULE_PATH}
+        LoadModule php${MOD_PHP_VERSION}_module ${APACHE_PHP_MODULE_PATH}
 
         <FilesMatch \.php$>
             AddType text/html .php

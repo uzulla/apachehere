@@ -5,13 +5,12 @@ usage_exit() {
     echo "Usage: $0 [-t document_root]  " 1>&2
     echo "[-b bind_ip] : default 127.0.0.1 " 1>&2
     echo "[-p port_num] : default 8080 " 1>&2
-    echo "[-m] : use mod_php" 1>&2
     echo "[-c /path/to/php.ini]" 1>&2
     echo "[-s /path/to/php/conf.d]" 1>&2
     exit 
 }
 # ポート1024以下を指定する場合は本スクリプトをsudoで実行する
-# mod_phpを使う場合には、libphp7.soなどをphpenv/versions/x.x.x/libexec/の中に設置する
+# phpenvのmod_phpを使う場合には、libphp7.soなどをphpenv/versions/x.x.x/libexec/の中に設置してあればそちらを優先し、存在しなければphp-cgiを使う
 
 ### functions
 # borrow from https://github.com/rbenv/rbenv
@@ -63,21 +62,19 @@ DOC_ROOT=${OLD_CWD}
 LISTEN_PORT=8080
 BIND_IP="127.0.0.1"
 
-# El capitan default apache
+# system apache path
 if [ "${APACHE_ORIG_SERVER_ROOT}" == "" ] ; then
     APACHE_ORIG_SERVER_ROOT="/usr"
     APACHE_ORIG_HTTPD=/usr/sbin/httpd
 fi
 
-# optionをパース
+# parse options
 while getopts :t:p:ms:c:b:h opts
 do
     case $opts in
         t) DOC_ROOT=$(realpath ${OPTARG})
             ;;
         p) LISTEN_PORT=$OPTARG
-            ;;
-        m) USE_MOD_PHP="yes"
             ;;
         c) APACHE_MY_PHP_INI_DIR=${OPTARG}
             ;;
@@ -90,15 +87,15 @@ do
     esac
 done
 
-# phpenvのバージョンをとってくる（もっとイケてる方法ないのか…？）
-# phpenvがなければPHPは有効にならない 
+# phpenvがあれば、DocumentRootの中における
+# 指定のPHPのバージョンをとってくる（もっとイケてる方法ないのか…？）
 cd ${DOC_ROOT}
 PHPENV_VER=`phpenv local 2> /dev/null`
 if [ "${PHPENV_VER}" == "" ]; then
     PHPENV_VER=`phpenv global 2> /dev/null`
-    if [ "${PHPENV_VER}" == "" ]; then
-        echo "no phpenv."
-    fi
+    #if [ "${PHPENV_VER}" == "" ]; then
+    #    echo "no phpenv."
+    #fi
 fi
 cd ${OLD_CWD}
 
@@ -106,37 +103,64 @@ if [ "${PHPENV_VER}" != "" ]; then
     PHP_BASE_DIR="/Users/${ORIG_USER}/.phpenv/versions/${PHPENV_VER}"
 
     # mod_phpのso、あるいはphp-cgiのpathを獲得する
-    if [ "${USE_MOD_PHP}" == "yes" ]; then
+    if [ -r "${PHP_BASE_DIR}/libexec/libphp7.so" ]; then
         USE_MOD_PHP_ARG="-DUSE_MOD_PHP"
-        if [ -r "${PHP_BASE_DIR}/libexec/libphp7.so" ]; then
-            APACHE_PHP_MODULE_PATH="${PHP_BASE_DIR}/libexec/libphp7.so"
-        elif [ -r "${PHP_BASE_DIR}/libexec/libphp5.so" ]; then
-            APACHE_PHP_MODULE_PATH="${PHP_BASE_DIR}/libexec/libphp5.so"
-        else
-            echo "not found /path/to/phpenv/versions/xxx/libexec/libphp(5|7).so";
-            abort;
-        fi
+        APACHE_PHP_MODULE_PATH="${PHP_BASE_DIR}/libexec/libphp7.so"
+        MOD_PHP_VERSION="7"
+    elif [ -r "${PHP_BASE_DIR}/libexec/libphp5.so" ]; then
+        USE_MOD_PHP_ARG="-DUSE_MOD_PHP"
+        APACHE_PHP_MODULE_PATH="${PHP_BASE_DIR}/libexec/libphp5.so"
+        MOD_PHP_VERSION="5"
     else
         APACHE_PHP_CGI_CONTAIN_DIR_PATH="${PHP_BASE_DIR}/bin/"
     fi
 
-    # 独自php.ini指定周り
-    if [ "${APACHE_MY_PHP_INI_DIR}" != "" ]; then
-        USE_APACHE_MY_PHP_INI_DIR="-DUSE_APACHE_MY_PHP_INI_DIR"
-    fi
-    if [ "${USE_MOD_PHP}" == "yes" ]; then
-        # mod_phpの場合、PHP_INI_SCAN_DIRをhttpd.confの中で指定する方法がわからぬ
-        export PHP_INI_SCAN_DIR=${APACHE_MY_PHP_INI_SCAN_DIR}
-    else
-        if [ "${APACHE_MY_PHP_INI_SCAN_DIR}" != "" ]; then
-            USE_APACHE_MY_PHP_INI_SCAN_DIR="-DUSE_APACHE_MY_PHP_INI_SCAN_DIR"
-        fi
-    fi
     USE_PHP="-DUSE_PHP"
 fi
 
+# phpenvでPHPがみつからなくても、OSX El capitanなら最初からmod_phpがあるので
+if [ -r "/usr/bin/sw_vers" ]; then
+    version=`sw_vers -productVersion`
+    # 10.11はEl capitan
+    if [[ "${version}" =~ ^10\.11 ]]; then
+        THIS_IS_EL_CAPITAN="yes"
+    fi
+fi
+if [ "${USE_PHP}" == "" ]; then 
+    if [ "${THIS_IS_EL_CAPITAN}" == "yes" ]; then
+        if [ -r "/usr/libexec/apache2/libphp5.so" ]; then
+            USE_PHP="-DUSE_PHP"
+            USE_MOD_PHP_ARG="-DUSE_MOD_PHP"
+            APACHE_PHP_MODULE_PATH="/usr/libexec/apache2/libphp5.so"
+            MOD_PHP_VERSION="5"
+        fi
+    fi
+fi
+
+# 独自php.ini指定周り
+if [ "${USE_PHP}" != "" ]; then 
+    if [ "${APACHE_MY_PHP_INI_DIR}" != "" ]; then
+        USE_APACHE_MY_PHP_INI_DIR="-DUSE_APACHE_MY_PHP_INI_DIR"
+    fi
+    if [ "${APACHE_MY_PHP_INI_SCAN_DIR}" != "" ]; then
+        if [ "${USE_MOD_PHP}" == "yes" ]; then
+            # mod_phpの場合、PHP_INI_SCAN_DIRをhttpd.confの中で指定する方法がわからぬのでここでexportしている
+            export PHP_INI_SCAN_DIR=${APACHE_MY_PHP_INI_SCAN_DIR}
+        else
+            USE_APACHE_MY_PHP_INI_SCAN_DIR="-DUSE_APACHE_MY_PHP_INI_SCAN_DIR"
+        fi
+    fi
+fi
+
 if [ "${APACHE_HTTPD_CONF_FILE}" == "" ]; then
-    APACHE_HTTPD_CONF_FILE=${BASE_DIR}/conf/httpd.conf
+    if [ -r "${BASE_DIR}/conf/httpd.conf" ]; then
+        APACHE_HTTPD_CONF_FILE=${BASE_DIR}/conf/httpd.conf
+    elif [ "${THIS_IS_EL_CAPITAN}" == "yes" ]; then
+        APACHE_HTTPD_CONF_FILE=${BASE_DIR}/conf/httpd.conf.elcap
+    else
+        echo "httpd.conf is not found, see README.md."
+        exit;
+    fi
 fi
 
 ### pass env to httpd.conf
@@ -146,14 +170,22 @@ export DOC_ROOT
 export ORIG_USER
 export APACHE_ORIG_SERVER_ROOT
 export TMP_APACHE_SERVER_ROOT
-if [ "${PHPENV_VER}" != "" ]; then
+if [ "${USE_PHP}" != "" ]; then
     export APACHE_PHP_MODULE_PATH
     export APACHE_PHP_CGI_CONTAIN_DIR_PATH
     export APACHE_MY_PHP_INI_DIR
     export APACHE_MY_PHP_INI_SCAN_DIR
+    export MOD_PHP_VERSION
 fi
 
-echo "document root is :${DOC_ROOT}"
+echo "DocumentRoot : ${DOC_ROOT}"
+if [ "${USE_PHP}" == "" ]; then
+    echo "php not found."
+elif [ "${USE_MOD_PHP_ARG}" != "" ]; then
+    echo "mod_php${MOD_PHP_VERSION}"
+else
+    echo "php-cgi"
+fi
 echo "open : http://127.0.0.1:${LISTEN_PORT}/"
 
 ### startup apache
@@ -167,8 +199,8 @@ ${APACHE_ORIG_HTTPD} \
  -d ${TMP_APACHE_SERVER_ROOT} \
  -f ${APACHE_HTTPD_CONF_FILE} \
  -DFOREGROUND \
- ${USE_PHP}
  ${USE_MOD_PHP_ARG} \
+ ${USE_PHP} \
  ${USE_APACHE_MY_PHP_INI_SCAN_DIR} \
  ${USE_APACHE_MY_PHP_INI_DIR} \
 
