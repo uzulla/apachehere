@@ -1,0 +1,191 @@
+# 開発環境向け httpd.conf El capitan 向け
+# 各種設定値をENVから読んでいます。
+ServerRoot ${TMP_APACHE_SERVER_ROOT}
+Listen ${BIND_IP}:${LISTEN_PORT}
+ServerName ${BIND_IP}:${LISTEN_PORT}
+
+PidFile ${TMP_APACHE_SERVER_ROOT}/logs/httpd.pid
+Mutex file:${TMP_APACHE_SERVER_ROOT}/logs default
+
+# mod_action, mod_cgi, mod_rewriteをデフォルトから有効にしてあります
+LoadModule mpm_prefork_module /usr/libexec/apache2/mod_mpm_prefork.so
+LoadModule authn_file_module /usr/libexec/apache2/mod_authn_file.so
+#LoadModule authn_dbm_module /usr/libexec/apache2/mod_authn_dbm.so
+#LoadModule authn_anon_module /usr/libexec/apache2/mod_authn_anon.so
+#LoadModule authn_dbd_module /usr/libexec/apache2/mod_authn_dbd.so
+#LoadModule authn_socache_module /usr/libexec/apache2/mod_authn_socache.so
+LoadModule authn_core_module /usr/libexec/apache2/mod_authn_core.so
+LoadModule authz_host_module /usr/libexec/apache2/mod_authz_host.so
+LoadModule authz_groupfile_module /usr/libexec/apache2/mod_authz_groupfile.so
+LoadModule authz_user_module /usr/libexec/apache2/mod_authz_user.so
+#LoadModule authz_dbm_module /usr/libexec/apache2/mod_authz_dbm.so
+#LoadModule authz_owner_module /usr/libexec/apache2/mod_authz_owner.so
+#LoadModule authz_dbd_module /usr/libexec/apache2/mod_authz_dbd.so
+LoadModule authz_core_module /usr/libexec/apache2/mod_authz_core.so
+#LoadModule authnz_ldap_module /usr/libexec/apache2/mod_authnz_ldap.so
+LoadModule access_compat_module /usr/libexec/apache2/mod_access_compat.so
+LoadModule auth_basic_module /usr/libexec/apache2/mod_auth_basic.so
+#LoadModule auth_form_module /usr/libexec/apache2/mod_auth_form.so
+#LoadModule auth_digest_module /usr/libexec/apache2/mod_auth_digest.so
+#LoadModule allowmethods_module /usr/libexec/apache2/mod_allowmethods.so
+#LoadModule file_cache_module /usr/libexec/apache2/mod_file_cache.so
+#LoadModule cache_module /usr/libexec/apache2/mod_cache.so
+#LoadModule cache_disk_module /usr/libexec/apache2/mod_cache_disk.so
+#LoadModule cache_socache_module /usr/libexec/apache2/mod_cache_socache.so
+#LoadModule socache_shmcb_module /usr/libexec/apache2/mod_socache_shmcb.so
+#LoadModule socache_dbm_module /usr/libexec/apache2/mod_socache_dbm.so
+#LoadModule socache_memcache_module /usr/libexec/apache2/mod_socache_memcache.so
+#LoadModule watchdog_module /usr/libexec/apache2/mod_watchdog.so
+#LoadModule macro_module /usr/libexec/apache2/mod_macro.so
+#LoadModule dbd_module /usr/libexec/apache2/mod_dbd.so
+#LoadModule dumpio_module /usr/libexec/apache2/mod_dumpio.so
+#LoadModule echo_module /usr/libexec/apache2/mod_echo.so
+#LoadModule buffer_module /usr/libexec/apache2/mod_buffer.so
+#LoadModule data_module /usr/libexec/apache2/mod_data.so
+#LoadModule ratelimit_module /usr/libexec/apache2/mod_ratelimit.so
+LoadModule reqtimeout_module /usr/libexec/apache2/mod_reqtimeout.so
+#LoadModule ext_filter_module /usr/libexec/apache2/mod_ext_filter.so
+#LoadModule request_module /usr/libexec/apache2/mod_request.so
+#LoadModule include_module /usr/libexec/apache2/mod_include.so
+LoadModule filter_module /usr/libexec/apache2/mod_filter.so
+#LoadModule reflector_module /usr/libexec/apache2/mod_reflector.so
+#LoadModule substitute_module /usr/libexec/apache2/mod_substitute.so
+#LoadModule sed_module /usr/libexec/apache2/mod_sed.so
+#LoadModule charset_lite_module /usr/libexec/apache2/mod_charset_lite.so
+#LoadModule deflate_module /usr/libexec/apache2/mod_deflate.so
+#LoadModule xml2enc_module /usr/libexec/apache2/mod_xml2enc.so
+#LoadModule proxy_html_module /usr/libexec/apache2/mod_proxy_html.so
+LoadModule mime_module /usr/libexec/apache2/mod_mime.so
+#LoadModule ldap_module /usr/libexec/apache2/mod_ldap.so
+LoadModule log_config_module /usr/libexec/apache2/mod_log_config.so
+#LoadModule log_debug_module /usr/libexec/apache2/mod_log_debug.so
+#LoadModule log_forensic_module /usr/libexec/apache2/mod_log_forensic.so
+#LoadModule logio_module /usr/libexec/apache2/mod_logio.so
+LoadModule env_module /usr/libexec/apache2/mod_env.so
+#LoadModule mime_magic_module /usr/libexec/apache2/mod_mime_magic.so
+#LoadModule expires_module /usr/libexec/apache2/mod_expires.so
+LoadModule headers_module /usr/libexec/apache2/mod_headers.so
+#LoadModule usertrack_module /usr/libexec/apache2/mod_usertrack.so
+##LoadModule unique_id_module /usr/libexec/apache2/mod_unique_id.so
+LoadModule setenvif_module /usr/libexec/apache2/mod_setenvif.so
+LoadModule version_module /usr/libexec/apache2/mod_version.so
+#LoadModule remoteip_module /usr/libexec/apache2/mod_remoteip.so
+LoadModule proxy_module /usr/libexec/apache2/mod_proxy.so
+LoadModule proxy_connect_module /usr/libexec/apache2/mod_proxy_connect.so
+LoadModule proxy_ftp_module /usr/libexec/apache2/mod_proxy_ftp.so
+LoadModule proxy_http_module /usr/libexec/apache2/mod_proxy_http.so
+LoadModule proxy_fcgi_module /usr/libexec/apache2/mod_proxy_fcgi.so
+LoadModule proxy_scgi_module /usr/libexec/apache2/mod_proxy_scgi.so
+#LoadModule proxy_fdpass_module /usr/libexec/apache2/mod_proxy_fdpass.so
+LoadModule proxy_wstunnel_module /usr/libexec/apache2/mod_proxy_wstunnel.so
+LoadModule proxy_ajp_module /usr/libexec/apache2/mod_proxy_ajp.so
+LoadModule proxy_balancer_module /usr/libexec/apache2/mod_proxy_balancer.so
+LoadModule proxy_express_module /usr/libexec/apache2/mod_proxy_express.so
+#LoadModule session_module /usr/libexec/apache2/mod_session.so
+#LoadModule session_cookie_module /usr/libexec/apache2/mod_session_cookie.so
+#LoadModule session_dbd_module /usr/libexec/apache2/mod_session_dbd.so
+LoadModule slotmem_shm_module /usr/libexec/apache2/mod_slotmem_shm.so
+#LoadModule slotmem_plain_module /usr/libexec/apache2/mod_slotmem_plain.so
+#LoadModule ssl_module /usr/libexec/apache2/mod_ssl.so
+#LoadModule dialup_module /usr/libexec/apache2/mod_dialup.so
+LoadModule lbmethod_byrequests_module /usr/libexec/apache2/mod_lbmethod_byrequests.so
+LoadModule lbmethod_bytraffic_module /usr/libexec/apache2/mod_lbmethod_bytraffic.so
+LoadModule lbmethod_bybusyness_module /usr/libexec/apache2/mod_lbmethod_bybusyness.so
+#LoadModule lbmethod_heartbeat_module /usr/libexec/apache2/mod_lbmethod_heartbeat.so
+LoadModule unixd_module /usr/libexec/apache2/mod_unixd.so
+#LoadModule heartbeat_module /usr/libexec/apache2/mod_heartbeat.so
+#LoadModule heartmonitor_module /usr/libexec/apache2/mod_heartmonitor.so
+#LoadModule dav_module /usr/libexec/apache2/mod_dav.so
+LoadModule status_module /usr/libexec/apache2/mod_status.so
+LoadModule autoindex_module /usr/libexec/apache2/mod_autoindex.so
+#LoadModule asis_module /usr/libexec/apache2/mod_asis.so
+#LoadModule info_module /usr/libexec/apache2/mod_info.so
+LoadModule cgi_module /usr/libexec/apache2/mod_cgi.so
+#LoadModule dav_fs_module /usr/libexec/apache2/mod_dav_fs.so
+#LoadModule dav_lock_module /usr/libexec/apache2/mod_dav_lock.so
+#LoadModule vhost_alias_module /usr/libexec/apache2/mod_vhost_alias.so
+LoadModule negotiation_module /usr/libexec/apache2/mod_negotiation.so
+LoadModule dir_module /usr/libexec/apache2/mod_dir.so
+#LoadModule imagemap_module /usr/libexec/apache2/mod_imagemap.so
+LoadModule actions_module /usr/libexec/apache2/mod_actions.so
+#LoadModule speling_module /usr/libexec/apache2/mod_speling.so
+#LoadModule userdir_module /usr/libexec/apache2/mod_userdir.so
+LoadModule alias_module /usr/libexec/apache2/mod_alias.so
+LoadModule rewrite_module /usr/libexec/apache2/mod_rewrite.so
+#LoadModule php5_module /usr/libexec/apache2/libphp5.so
+LoadModule hfs_apple_module /usr/libexec/apache2/mod_hfs_apple.so
+
+User ${ORIG_USER}
+Group staff
+
+<Directory />
+    AllowOverride none
+    Require all denied
+</Directory>
+
+<FilesMatch "^\.([Hh][Tt]|[Dd][Ss]_[Ss])">
+    Require all denied
+</FilesMatch>
+
+ErrorLog /dev/stdout
+LogLevel warn
+
+LogFormat "%t %h [%>s]: %U%q" php_bs_style
+CustomLog /dev/stdout php_bs_style
+
+TypesConfig /etc/apache2/mime.types
+
+DirectoryIndex index.html
+
+### Set up PHP Env.
+<IfDefine USE_PHP>
+    DirectoryIndex index.php index.html
+    # mod_phpの場合
+    <IfDefine USE_MOD_PHP>
+        LoadModule php${MOD_PHP_VERSION}_module ${APACHE_PHP_MODULE_PATH}
+
+        <FilesMatch \.php$>
+            AddType text/html .php
+            SetHandler application/x-httpd-php
+        </FilesMatch>
+
+        # php.iniを指定する場合
+        <IFDefine USE_APACHE_MY_PHP_INI_DIR>
+            PHPIniDir "${APACHE_MY_PHP_INI_DIR}"
+        </IFDefine>
+        # PHP_INI_SCAN_DIRはstart.shの環境変数で設定
+    </IfDefine>
+    # apache mod_action+php-cgiの場合
+    <IfDefine !USE_MOD_PHP>
+        # ScriptAliasを phpenv/versions/x.x.x/bin/ に直接張るのは悪い手法、
+        # （php-cgi以外もpathが通ってしまうので）
+        # php-binをどこかにコピーして指定するのが本来正しい。
+        # ここではローカル開発環境向けなので許す。
+        # php-cgiでmod_rewriteのQSAを使うと、mod_phpと違ってSCRIPT_NAMEにホスト名が入る事があるので注意
+        ScriptAlias /php-bin/ ${APACHE_PHP_CGI_CONTAIN_DIR_PATH}
+        <Directory  ${APACHE_PHP_CGI_CONTAIN_DIR_PATH}>
+            Options ExecCGI
+            Require all granted
+        </Directory>
+        Action php-script /php-bin/php-cgi
+        <FilesMatch \.php$>
+            AddHandler php-script .php
+        </FilesMatch>
+
+        # php.iniを指定する場合
+        <IFDefine USE_APACHE_MY_PHP_INI_DIR>
+            SetEnv PHPRC "${APACHE_MY_PHP_INI_DIR}/php.ini"
+        </IFDefine>
+        <IFDefine USE_APACHE_MY_PHP_INI_SCAN_DIR>
+            SetEnv PHP_INI_SCAN_DIR "${APACHE_MY_PHP_INI_SCAN_DIR}"
+        </IfDefine>
+    </IFDefine>
+</IfDefine>
+
+### Setup DocumentRoot
+DocumentRoot ${DOC_ROOT}
+<Directory ${DOC_ROOT} >
+    Options FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>

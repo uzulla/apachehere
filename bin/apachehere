@@ -7,7 +7,7 @@ usage_exit() {
     echo "[-p port_num] : default 8080 " 1>&2
     echo "[-c /path/to/php.ini]" 1>&2
     echo "[-s /path/to/php/conf.d]" 1>&2
-    exit 
+    exit
 }
 # ポート1024以下を指定する場合は本スクリプトをsudoで実行する
 # phpenvのmod_phpを使う場合には、libphp7.soなどをphpenv/versions/x.x.x/libexec/の中に設置してあればそちらを優先し、存在しなければphp-cgiを使う
@@ -100,19 +100,26 @@ fi
 cd ${OLD_CWD}
 
 if [ "${PHPENV_VER}" != "" ]; then
-    PHP_BASE_DIR="/Users/${ORIG_USER}/.phpenv/versions/${PHPENV_VER}"
-
+    PHP_BIN_DIR=`which php` # XXX phpenvとanyenv両方サポートするには…
+    PHP_BASE_DIR=`dirname $PHP_BIN_DIR` # XXX
+    PHP_BASE_DIR=`dirname $PHP_BASE_DIR` # XXX
+    PHP_BASE_DIR="${PHP_BASE_DIR}/versions/${PHPENV_VER}" # XXX
+    echo $PHP_BASE_DIR
     # mod_phpのso、あるいはphp-cgiのpathを獲得する
-    if [ -r "${PHP_BASE_DIR}/libexec/libphp7.so" ]; then
+    if [ -r "${PHP_BASE_DIR}/libexec/libphp7.so" ]; then # normal phpenv
         USE_MOD_PHP_ARG="-DUSE_MOD_PHP"
         APACHE_PHP_MODULE_PATH="${PHP_BASE_DIR}/libexec/libphp7.so"
+        MOD_PHP_VERSION="7"
+    elif [ -r "${PHP_BASE_DIR}/lib/httpd/modules/libphp7.so" ]; then # phpenv+homebrew php
+        USE_MOD_PHP_ARG="-DUSE_MOD_PHP"
+        APACHE_PHP_MODULE_PATH="${PHP_BASE_DIR}/lib/httpd/modules/libphp7.so"
         MOD_PHP_VERSION="7"
     elif [ -r "${PHP_BASE_DIR}/libexec/libphp5.so" ]; then
         USE_MOD_PHP_ARG="-DUSE_MOD_PHP"
         APACHE_PHP_MODULE_PATH="${PHP_BASE_DIR}/libexec/libphp5.so"
         MOD_PHP_VERSION="5"
     else
-        APACHE_PHP_CGI_CONTAIN_DIR_PATH="${PHP_BASE_DIR}/bin/"
+        APACHE_PHP_CGI_CONTAIN_DIR_PATH="${PHP_BASE_DIR}/"
     fi
 
     USE_PHP="-DUSE_PHP"
@@ -126,7 +133,7 @@ if [ -r "/usr/bin/sw_vers" ]; then
         THIS_IS_EL_CAPITAN="yes"
     fi
 fi
-if [ "${USE_PHP}" == "" ]; then 
+if [ "${USE_PHP}" == "" ]; then
     if [ "${THIS_IS_EL_CAPITAN}" == "yes" ]; then
         if [ -r "/usr/libexec/apache2/libphp5.so" ]; then
             USE_PHP="-DUSE_PHP"
@@ -138,7 +145,7 @@ if [ "${USE_PHP}" == "" ]; then
 fi
 
 # 独自php.ini指定周り
-if [ "${USE_PHP}" != "" ]; then 
+if [ "${USE_PHP}" != "" ]; then
     if [ "${APACHE_MY_PHP_INI_DIR}" != "" ]; then
         USE_APACHE_MY_PHP_INI_DIR="-DUSE_APACHE_MY_PHP_INI_DIR"
     fi

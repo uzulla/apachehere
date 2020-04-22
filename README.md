@@ -4,29 +4,29 @@
 
 好きなディレクトリで`apachehere`とタイプすると、そこをDocumentRootとしてApacheが立ち上がります。PHPのbuiltin serverみたいで手軽です。
 
-OSX El capitanならcloneしてpathを通すだけでSystemのApacheとPHPを利用した環境が立ち上がります。
+OSX El capitanやCatalinaならcloneしてpathを通すだけでSystemのApacheとPHPを利用した環境が立ち上がります。
 
 phpenvがインストール済みならば、そちらのphpをつかいます。phpenvのlocal指定も反映されます。mod_phpも使えます（後述）。
 
 
 ## DISCLAIMER
 
-OSX El Capitanでのみテストしていますが、おそらく他でも多少の手直しで動くと思われます。
+直近はOSX Catalina + phpenv + brew でのみテストしていますが、おそらく他でも多少の手直しで動くと思われます。
 
 サンプルの`httpd.conf`はあくまで手元での開発用であり、最低限のオプションしかつけていません。Production用としては参考にしないほうが良いでしょう。
 
 ## インストール
 
-### El capitanの環境
+### macOSの環境
 
-cloneしてpathを通すだけです。 `phpenv`がなければ、System ApacheとSystem PHPを利用します。
+おそらくcloneしてpathを通すだけです。 `phpenv`がなければ、System ApacheとSystem PHPを利用します。
 
 ```
 $ git clone https://github.com/uzulla/apachehere.git
 # `apachehere/bin`にpathを通すか、pathの通った所にapachehereをsymlinkする
 ```
 
-System Apacheを使わない場合や、`httpd.conf`を修正したい場合は次を参照
+System Apacheを使わない場合や、`httpd.conf`を修正したい場合は以降を参照
 
 ### それ以外の環境、あるいは野良ビルドしたApacheを使う場合
 
@@ -100,3 +100,9 @@ Usage: apachehere [-t document_root]
 
 `libphp5.so`や`libphp7.so`の作り方は「libphp7.so phpenv ビルド」とかでググるとよいでしょう。
 
+あるいは、homebrewでいれたものをphpenv管理下におけばそれでも動作します。
+
+```
+$ ln -s /usr/local/Cellar/php/7.4.5_1/ ~/.phpenv/versions/7.4.5
+$ phpenv local 7.4.5
+```
